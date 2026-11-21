@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>礼包赠送记录</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --navy: #0f172a; --navy2: #1e293b; --accent: #2563eb; --accent-dark: #1d4ed8;
+    --bg: #eef2f7; --card: #ffffff; --text: #1e293b; --muted: #64748b;
+    --line: #e2e8f0; --green: #059669; --red: #dc2626; --radius: 14px;
+  }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+    background: linear-gradient(135deg, #ffd6e7 0%, #ff9ecb 50%, #ff7ab5 100%);
+    color: var(--text); font-size: 15px; line-height: 1.45;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom)); -webkit-font-smoothing: antialiased;
+  }
+  @keyframes rainbow-bg {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .app-header {
+    position: sticky; top: 0; z-index: 50; color: #fff;
+    padding: 14px 16px; padding-top: calc(14px + env(safe-area-inset-top));
+    box-shadow: 0 2px 12px rgba(15,23,42,.28); text-align: center;
+    background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff);
+    background-size: 400% 400%;
+    animation: rainbow-bg 8s linear infinite;
+  }
+  .app-header h1 { margin: 0; font-size: 17px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .app-header p { margin: 3px 0 0; font-size: 12px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .music-player { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .music-btn { border: 0; width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #1e293b; font-size: 14px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+  .music-btn:active { transform: scale(.94); }
+  .music-status { font-size: 12px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.4); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .music-file-label { font-size: 12px; color: #fff; background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.45); border-radius: 14px; padding: 4px 12px; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+  .music-file-label:active { background: rgba(255,255,255,.35); }
+  main { max-width: 720px; margin: 0 auto; padding: 12px; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .search-bar input { flex: 1; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-size: 14.5px; outline: none; }
+  .search-bar button { border: 0; padding: 0 18px; border-radius: 12px; background: linear-gradient(90deg, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff); background-size: 300% 300%; animation: rainbow-bg 6s linear infinite; color: #fff; font-size: 14px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat { background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff); background-size: 400% 400%; animation: rainbow-bg 6s linear infinite; border-radius: var(--radius); padding: 14px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+  .stat .label { font-size: 12px; color: #cbd5e1; }
+  .stat .value { margin-top: 8px; font-size: 22px; font-weight: 700; }
+  .stat .value.neg { color: #fca5a5; }
+  .card { background: var(--card); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(15,23,42,.07); }
+  .card h2 {
+    display: flex; align-items: center; gap: 7px; margin: 0 0 12px; font-size: 14px; font-weight: 700;
+    background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .card h2::before { content: ''; width: 3px; height: 14px; border-radius: 2px; background: linear-gradient(180deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff); }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; margin-bottom: 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+  .field input, .field .fake-input { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; color: var(--text); font-size: 14px; outline: none; -webkit-appearance: none; appearance: none; height: 42px; line-height: 20px;}
+  .field input:focus { border-color: var(--accent); background: #fff; }
+  /* 右侧假输入框，纯展示，绝不会抢焦点 */
+  .field .fake-input { background: #e2e8f0; color: #64748b; display: flex; align-items: center; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .btn-primary { width: 100%; padding: 13px; border: 0; border-radius: 12px; background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff); background-size: 400% 400%; animation: rainbow-bg 5s linear infinite; color: #fff; font-size: 15.5px; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .btn-primary:active { opacity: .85; }
+  .gift-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .gift-row:last-child { border-bottom: 0; }
+  .gift-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 10px; }
+  .gift-count { flex-shrink: 0; padding: 2px 10px; border-radius: 20px; background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff); background-size: 400% 400%; animation: rainbow-bg 5s linear infinite; color: #fff; font-size: 12.5px; font-weight: 700; }
+  .section-title { margin: 16px 4px 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .group-list { display: block; position: relative; }
+  .group { background: #fff; border-radius: var(--radius); margin-bottom: 10px; box-shadow: 0 1px 4px rgba(15,23,42,.07); overflow: hidden; }
+  .group.dragging { position: fixed; z-index: 1000; margin: 0; pointer-events: none; box-shadow: 0 18px 44px rgba(15,23,42,.4); opacity: .95; border-radius: var(--radius); transform: scale(1.02); }
+  .group-head { display: flex; align-items: center; gap: 8px; padding: 12px; background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff); background-size: 400% 400%; animation: rainbow-bg 7s linear infinite; color: #fff; cursor: pointer; user-select: none; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+  .group-head .collapse-icon { flex-shrink: 0; font-size: 12px; color: #93c5fd; transition: transform .2s; }
+  .group.collapsed .collapse-icon { transform: rotate(-90deg); }
+  .group-head .sender-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; }
+  .group-head .group-meta { flex-shrink: 0; font-size: 12px; color: #cbd5e1; background: rgba(255,255,255,.1); padding: 2px 8px; border-radius: 10px; }
+  .group-head .drag-handle { flex-shrink: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; margin: -6px -6px -6px 0; font-size: 20px; color: #94a3b8; touch-action: none; cursor: grab; }
+  .group-body { padding: 10px 10px 4px; background: #f8fafc; }
+  .group.collapsed .group-body { display: none; }
+  .drag-placeholder { border-radius: var(--radius); border: 2px dashed rgba(37,99,235,.45); background: rgba(37,99,235,.06); margin-bottom: 10px; }
+  .record-item { background: #fff; border-radius: 12px; border-left: 4px solid transparent; border-image: linear-gradient(180deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff) 1; padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+  .group-body .record-item:last-child { margin-bottom: 0; }
+  .record-item.done { border-left-color: #94a3b8; opacity: .72; }
+  .record-item.highlight { background: #fff9d6; box-shadow: 0 0 0 3px #f5b800; }
+  .rec-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .rec-name { flex: 1; font-size: 15px; font-weight: 600; color: var(--navy); word-break: break-all; }
+  .record-item.done .rec-name { text-decoration: line-through; color: #94a3b8; }
+  .rec-profit { flex-shrink: 0; font-size: 15.5px; font-weight: 700; color: var(--green); }
+  .rec-profit.neg { color: var(--red); }
+  .rec-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  .rec-meta b { color: #334155; font-weight: 600; }
+  .rec-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 9px; border-top: 1px solid #f1f5f9; }
+  .rec-status { margin-right: auto; font-size: 12px; color: var(--muted); }
+  .rec-actions button { border: 0; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600; }
+  .btn-done { background: linear-gradient(90deg, #00ff00, #00ffff, #0000ff); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .btn-done.is-done { background: linear-gradient(90deg, #ff7f00, #ffff00, #00ff00); color: #1e293b; }
+  .btn-del { background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00); color: #1e293b; }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 14px; background: #fff; border-radius: var(--radius); }
+  .empty-small { padding: 10px 0; text-align: center; color: var(--muted); font-size: 13px; }
+  .tabbar { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: 100%; max-width: 720px; display: flex; background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff); background-size: 400% 400%; animation: rainbow-bg 8s linear infinite; border-top: 1px solid rgba(255,255,255,.3); z-index: 60; padding-bottom: env(safe-area-inset-bottom); }
+  .tabbar button { flex: 1; border: 0; background: none; padding: 12px 0 11px; font-size: 13px; color: #fff; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .tabbar button.active { color: #1e293b; font-weight: 800; }
+  .toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translate(-50%, 10px); padding: 10px 18px; border-radius: 22px; background: rgba(15,23,42,.92); color: #fff; font-size: 13.5px; opacity: 0; pointer-events: none; transition: all .25s; z-index: 100; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .backup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn-backup { border: 0; border-radius: 12px; padding: 12px 10px; font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.3); background: linear-gradient(90deg, #2563eb, #7c3aed); }
+  .btn-backup:active { opacity: .85; }
+  .backup-tip { margin-top: 10px; font-size: 11.5px; color: #64748b; line-height: 1.5; }
+</style>
+</head>
+<body>
+<header class="app-header">
+  <h1>礼包赠送记录</h1>
+  <p>实际收益 = 赠送价 + 优惠券 − 原价 · 显示时间 = 登记时间 + 72 小时</p>
+  <div class="music-player">
+    <button type="button" id="btnMusic" class="music-btn" title="播放/暂停音乐">▶</button>
+    <span class="music-status" id="musicStatus">内置音乐</span>
+    <label class="music-file-label" for="musicFile" title="选择本地音乐文件">🎵 选曲<input type="file" id="musicFile" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus" hidden></label>
+  </div>
+</header>
+<main>
+  <section id="page-home" class="page active">
+    <div class="search-bar">
+      <input type="search" id="searchHome" placeholder="搜索送礼方 / 收礼方 / 礼包...">
+      <button type="button" id="searchHomeBtn">搜索</button>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="label">本月赠送总次数</div>
+        <div class="value" id="statCount">0</div>
+      </div>
+      <div class="stat">
+        <div class="label">本月总收益</div>
+        <div class="value" id="statProfit">¥0.00</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>新增记录</h2>
+      <div id="giftForm" autocomplete="off">
+        <div class="row">
+          <div class="field">
+            <label>送礼方</label>
+            <input type="text" id="fSender" placeholder="例如：张三">
+          </div>
+          <div class="field">
+            <label>收礼方</label>
+            <input type="text" id="fReceiver" placeholder="例如：李四">
+          </div>
+        </div>
+        <div class="field">
+          <label>名称备注</label>
+          <input type="text" id="fName" placeholder="例如：王者荣耀豪华礼包">
+        </div>
+        <div class="row-3">
+          <div class="field">
+            <label>原价（元）</label>
+            <input type="text" id="fOriginPrice" inputmode="decimal" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label>赠送价（元）</label>
+            <input type="text" id="fPrice" inputmode="decimal" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label>优惠券（元）</label>
+            <input type="text" id="fCoupon" inputmode="decimal" placeholder="0.00">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>登记时间 (自动填充，可改字)</label>
+            <input type="text" id="fRegTime" placeholder="YYYY-MM-DD HH:MM">
+          </div>
+          <div class="field">
+            <label>显示时间 (+72h)</label>
+            <!-- 这里改成了 div，彻底杜绝焦点抢占和事件吞没 -->
+            <div class="fake-input" id="fShowTime"></div>
+          </div>
+        </div>
+        <button type="button" id="btnAdd" class="btn-primary">添加记录</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>各礼包赠送次数</h2>
+      <div id="giftCounts"><div class="empty-small">暂无数据</div></div>
+    </div>
+    <div class="card">
+      <h2>数据备份</h2>
+      <div class="backup-row">
+        <button type="button" id="btnExport" class="btn-backup">⬇ 导出备份到手机</button>
+        <button type="button" id="btnImport" class="btn-backup">⬆ 从手机导入备份</button>
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+      </div>
+      <div class="backup-tip">导出：把当前所有记录存成文件下载到手机 · 导入：从手机选备份文件恢复记录</div>
+    </div>
+    <div class="section-title">按送礼方查看（点击头部折叠 · 按住 ≡ 拖动排序）</div>
+    <div id="groupListHome" class="group-list"></div>
+  </section>
+  <section id="page-records" class="page">
+    <div class="search-bar">
+      <input type="search" id="searchRecord" placeholder="输入关键词，自动定位记录…">
+      <button type="button" id="searchRecordBtn">搜索</button>
+    </div>
+    <div id="groupListRecords" class="group-list"></div>
+  </section>
+</main>
+<nav class="tabbar">
+  <button type="button" class="tab active" data-page="home">首页</button>
+  <button type="button" class="tab" data-page="records">记录</button>
+</nav>
+<div class="toast" id="toast"></div>
+<script>
+window.onerror = function(msg, url, line) {
+  if (window.console && console.error) console.error('页面错误:', msg, url, line);
+  return false;
+};
+(function () {
+  'use strict';
+  var STORAGE_KEY = 'giftData_v11'; // 全新版本号，抛弃所有旧数据
+  var ORDER_KEY = 'giftSenderOrder_v11';
+  var COLLAPSE_KEY = 'giftCollapsed_v11';
+  function $(id) { return document.getElementById(id); }
+  function pad(n) { return n < 10 ? '0' + n : n; }
+  // 格式化时间输出
+  function formatDate(d) {
+    if (!(d instanceof Date) || isNaN(d.getTime())) d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  // 带秒的格式（用于实时时钟展示）
+  function formatDateSec(d) {
+    if (!(d instanceof Date) || isNaN(d.getTime())) d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  // 极其强悍的时间解析，暴力提取数字，绝对不报错
+  function parseDateSafe(str) {
+    if (!str) return new Date();
+    var nums = String(str).match(/\d+/g);
+    if (nums && nums.length >= 3) {
+      var y = parseInt(nums[0], 10);
+      var m = parseInt(nums[1], 10) - 1;
+      var d = parseInt(nums[2], 10);
+      var h = nums.length >= 4 ? parseInt(nums[3], 10) : 0;
+      var min = nums.length >= 5 ? parseInt(nums[4], 10) : 0;
+      if (y < 100) y += 2000; 
+      var date = new Date(y, m, d, h, min);
+      if (!isNaN(date.getTime())) return date;
+    }
+    return new Date();
+  }
+  function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function money(n) { return (Math.round(n * 100) / 100).toFixed(2); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function closestEl(el, sel) {
+    while (el && el !== document) {
+      if (el.matches && el.matches(sel)) return el;
+      el = el.parentNode;
+    }
+    return null;
+  }
+  function loadJSON(key, fallback) {
+    try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
+  }
+  var records = loadJSON(STORAGE_KEY, []);
+  if (!Array.isArray(records)) records = [];
+  var senderOrder = loadJSON(ORDER_KEY, []);
+  if (!Array.isArray(senderOrder)) senderOrder = [];
+  var collapsedMap = loadJSON(COLLAPSE_KEY, {});
+  if (!collapsedMap || typeof collapsedMap !== 'object') collapsedMap = {};
+  function saveRecords() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch (e) {} }
+  function saveOrder() { try { localStorage.setItem(ORDER_KEY, JSON.stringify(senderOrder)); } catch (e) {} }
+  function saveCollapsed() { try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsedMap)); } catch (e) {} }
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+  function bindMoneyInput(el) {
+    if (!el) return;
+    el.addEventListener('input', function () {
+      var v = el.value.replace(/[^\d.]/g, '');
+      var firstDot = v.indexOf('.');
+      if (firstDot !== -1) {
+        v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, '');
+        var parts = v.split('.');
+        if (parts[1] && parts[1].length > 2) v = parts[0] + '.' + parts[1].slice(0, 2);
+      }
+      if (v.charAt(0) === '.') v = '0' + v;
+      if (el.value !== v) el.value = v;
+    });
+    el.addEventListener('blur', function () {
+      if (el.value === '' || el.value === '.') return;
+      var n = parseFloat(el.value);
+      if (!isNaN(n)) el.value = money(n);
+    });
+  }
+  function switchPage(name, scrollTop) {
+    var pages = document.querySelectorAll('.page');
+    for (var i = 0; i < pages.length; i++) pages[i].classList.toggle('active', pages[i].id === 'page-' + name);
+    var tabs = document.querySelectorAll('.tab');
+    for (var j = 0; j < tabs.length; j++) tabs[j].classList.toggle('active', tabs[j].getAttribute('data-page') === name);
+    if (scrollTop !== false) window.scrollTo(0, 0);
+  }
+  function renderStats() {
+    var now = new Date();
+    var count = 0, profit = 0;
+    var nowMonthStr = now.getFullYear() + '-' + pad(now.getMonth() + 1);
+    records.forEach(function (r) {
+      if (String(r.regTime || '').indexOf(nowMonthStr) === 0) {
+        count++;
+        profit += (num(r.price) - num(r.originPrice) + num(r.coupon));
+      }
+    });
+    $('statCount').textContent = count;
+    var el = $('statProfit');
+    el.textContent = '¥' + money(profit);
+    el.classList.toggle('neg', profit < 0);
+  }
+  function renderGiftCounts() {
+    var map = {};
+    records.forEach(function (r) { var k = r.name || '未命名'; map[k] = (map[k] || 0) + 1; });
+    var keys = Object.keys(map);
+    if (!keys.length) { $('giftCounts').innerHTML = '<div class="empty-small">暂无数据</div>'; return; }
+    keys.sort(function (a, b) { return map[b] - map[a]; });
+    $('giftCounts').innerHTML = keys.map(function (k) {
+      return '<div class="gift-row"><span class="gift-name">' + esc(k) + '</span><span class="gift-count">' + map[k] + ' 次</span></div>';
+    }).join('');
+  }
+  function buildGroups() {
+    var map = {};
+    records.forEach(function (r) {
+      var sender = r.sender || '未分组';
+      if (!map[sender]) map[sender] = [];
+      map[sender].push(r);
+    });
+    var allSenders = Object.keys(map);
+    var ordered = [];
+    senderOrder.forEach(function (s) { if (map[s] && ordered.indexOf(s) === -1) ordered.push(s); });
+    allSenders.forEach(function (s) { if (ordered.indexOf(s) === -1) ordered.push(s); });
+    senderOrder = ordered;
+    return ordered.map(function (s) {
+      var list = map[s].slice().sort(function (a, b) {
+        return String(b.regTime).localeCompare(String(a.regTime));
+      });
+      return { sender: s, records: list };
+    });
+  }
+  function recordHTML(r) {
+    var profit = num(r.price) - num(r.originPrice) + num(r.coupon);
+    var search = [r.sender, r.receiver, r.name, r.regTime].join(' ').toLowerCase();
+    return '' +
+      '<div class="record-item' + (r.done ? ' done' : '') + '" data-id="' + esc(r.id) + '" data-search="' + esc(search) + '">' +
+        '<div class="rec-top">' +
+          '<span class="rec-name">' + esc(r.name) + '</span>' +
+          '<span class="rec-profit' + (profit < 0 ? ' neg' : '') + '">' + (profit < 0 ? '-' : '+') + '¥' + money(Math.abs(profit)) + '</span>' +
+        '</div>' +
+        '<div class="rec-meta">' +
+          '<span>收礼方 <b>' + esc(r.receiver) + '</b></span>' +
+          '<span>原价 <b>¥' + money(num(r.originPrice)) + '</b></span>' +
+          '<span>赠送价 <b>¥' + money(num(r.price)) + '</b></span>' +
+          '<span>优惠券 <b>¥' + money(num(r.coupon)) + '</b></span>' +
+        '</div>' +
+        '<div class="rec-meta">' +
+          '<span>登记 <b>' + esc(r.regTime) + '</b></span>' +
+          '<span>显示 <b>' + esc(r.showTime) + '</b></span>' +
+        '</div>' +
+        '<div class="rec-actions">' +
+          '<span class="rec-status">' + (r.done ? '已完成' : '待完成') + '</span>' +
+          '<button type="button" class="btn-done' + (r.done ? ' is-done' : '') + '">' + (r.done ? '取消完成' : '完成') + '</button>' +
+          '<button type="button" class="btn-del">删除</button>' +
+        '</div>' +
+      '</div>';
+  }
+  function groupHTML(g) {
+    var collapsed = !!collapsedMap[g.sender];
+    var profitSum = 0;
+    g.records.forEach(function (r) { profitSum += (num(r.price) - num(r.originPrice) + num(r.coupon)); });
+    var count = g.records.length;
+    var profitText = (profitSum < 0 ? '-' : '+') + '¥' + money(Math.abs(profitSum));
+    var bodyHTML = g.records.map(recordHTML).join('');
+    return '' +
+      '<div class="group' + (collapsed ? ' collapsed' : '') + '" data-sender="' + esc(g.sender) + '">' +
+        '<div class="group-head">' +
+          '<span class="collapse-icon">▾</span>' +
+          '<span class="sender-name">' + esc(g.sender) + '</span>' +
+          '<span class="group-meta">' + count + '次 · ' + profitText + '</span>' +
+          '<span class="drag-handle" title="按住拖动排序">≡</span>' +
+        '</div>' +
+        '<div class="group-body">' + (bodyHTML || '<div class="empty-small">暂无记录</div>') + '</div>' +
+      '</div>';
+  }
+  function renderAll() {
+    var groups = buildGroups();
+    var html = groups.map(groupHTML).join('');
+    $('groupListHome').innerHTML = html || '<div class="empty">还没有记录，去上方添加第一条吧 ✨</div>';
+    $('groupListRecords').innerHTML = html || '<div class="empty">还没有记录，去首页添加吧 ✨</div>';
+    renderStats();
+    renderGiftCounts();
+  }
+  /* ================= 时间逻辑 ================= */
+  var fRegTime = $('fRegTime');
+  var fShowTime = $('fShowTime');
+  // 是否跟随实时时钟（手动改时间后自动暂停）
+  var liveClock = true;
+  // 把当前时间写进两个框（登记=现在，显示=现在+72h），带秒数
+  function tickClock() {
+    if (!liveClock) return;
+    var now = new Date();
+    fRegTime.value = formatDateSec(now);
+    fShowTime.textContent = formatDateSec(new Date(now.getTime() + 72 * 60 * 60 * 1000));
+  }
+  function initTime() {
+    liveClock = true;
+    tickClock();
+  }
+  // 每秒同步跳动
+  try { setInterval(tickClock, 1000); } catch (e) {}
+  // 用户手动编辑登记时间 → 停止自动跳，改由用户输入驱动
+  function onManualEdit() {
+    liveClock = false;
+    updateShowTime();
+  }
+  function updateShowTime() {
+    if (!fRegTime.value) return;
+    var d = parseDateSafe(fRegTime.value);
+    fShowTime.textContent = formatDateSec(new Date(d.getTime() + 72 * 60 * 60 * 1000));
+  }
+  fRegTime.addEventListener('input', onManualEdit);
+  fRegTime.addEventListener('change', onManualEdit);
+  // 点显示时间框 = 手动模式切换回实时
+  fShowTime.addEventListener('click', function () {
+    initTime();
+    toast('已恢复实时同步 ✓');
+  });
+
+  /* ================= 新增记录 ================= */
+  function addRecord() {
+    var sender = $('fSender').value.trim();
+    var receiver = $('fReceiver').value.trim();
+    var name = $('fName').value.trim();
+    var originPrice = num($('fOriginPrice').value);
+    var price = num($('fPrice').value);
+    var coupon = num($('fCoupon').value);
+    var regTime = fRegTime.value.trim() || formatDate(new Date());
+    var d = parseDateSafe(regTime);
+    var showTime = formatDate(new Date(d.getTime() + 72 * 60 * 60 * 1000));
+    records.push({
+      id: uid(),
+      sender: sender || '未分组',
+      receiver: receiver,
+      name: name || '未命名',
+      originPrice: originPrice,
+      price: price,
+      coupon: coupon,
+      regTime: regTime,
+      showTime: showTime,
+      done: false,
+      ts: Date.now()
+    });
+    saveRecords();
+    saveOrder();
+    renderAll();
+    $('fSender').value = '';
+    $('fReceiver').value = '';
+    $('fName').value = '';
+    $('fOriginPrice').value = '';
+    $('fPrice').value = '';
+    $('fCoupon').value = '';
+    initTime();
+    toast('已添加记录 ✓');
+  }
+  $('btnAdd').addEventListener('click', addRecord);
+
+  /* ================= 删除 / 完成 / 折叠 ================= */
+  function findRecord(id) {
+    for (var i = 0; i < records.length; i++) if (records[i].id === id) return records[i];
+    return null;
+  }
+  function removeRecord(id) {
+    records = records.filter(function (r) { return r.id !== id; });
+    saveRecords();
+    renderAll();
+  }
+  function bindListEvents() {
+    var homeList = $('groupListHome');
+    var recList = $('groupListRecords');
+    function onDelete(e) {
+      var btn = closestEl(e.target, '.btn-del');
+      if (!btn) return;
+      var item = closestEl(btn, '.record-item');
+      if (!item) return;
+      var id = item.getAttribute('data-id');
+      if (!confirm('确定删除这条记录吗？')) return;
+      removeRecord(id);
+      toast('已删除');
+    }
+    function onDone(e) {
+      var btn = closestEl(e.target, '.btn-done');
+      if (!btn) return;
+      var item = closestEl(btn, '.record-item');
+      if (!item) return;
+      var id = item.getAttribute('data-id');
+      var r = findRecord(id);
+      if (r) {
+        r.done = !r.done;
+        saveRecords();
+        renderAll();
+        toast(r.done ? '标记为已完成' : '已取消完成');
+      }
+    }
+    function onCollapse(e) {
+      var head = closestEl(e.target, '.group-head');
+      if (!head) return;
+      if (closestEl(e.target, '.drag-handle')) return;
+      var group = closestEl(head, '.group');
+      if (!group) return;
+      var sender = group.getAttribute('data-sender');
+      collapsedMap[sender] = !collapsedMap[sender];
+      saveCollapsed();
+      group.classList.toggle('collapsed', !!collapsedMap[sender]);
+    }
+    homeList.addEventListener('click', onDelete);
+    homeList.addEventListener('click', onDone);
+    homeList.addEventListener('click', onCollapse);
+    recList.addEventListener('click', onDelete);
+    recList.addEventListener('click', onDone);
+    recList.addEventListener('click', onCollapse);
+  }
+  try { bindListEvents(); } catch (e) {}
+
+  /* ================= 拖拽排序 ================= */
+  function bindDrag() {
+    var homeList = $('groupListHome');
+    var dragEl = null;
+    var startY = 0;
+    function onDown(e) {
+      var handle = closestEl(e.target, '.drag-handle');
+      if (!handle) return;
+      var group = closestEl(handle, '.group');
+      if (!group) return;
+      dragEl = group;
+      startY = e.touches ? e.touches[0].clientY : e.clientY;
+      dragEl.classList.add('dragging');
+      if (e.cancelable) e.preventDefault();
+    }
+    function onMove(e) {
+      if (!dragEl) return;
+      var y = e.touches ? e.touches[0].clientY : e.clientY;
+      dragEl.style.transform = 'translateY(' + (y - startY) + 'px)';
+    }
+    function onUp(e) {
+      if (!dragEl) return;
+      dragEl.classList.remove('dragging');
+      dragEl.style.transform = '';
+      var groups = Array.prototype.slice.call(homeList.querySelectorAll('.group:not(.dragging)'));
+      var y = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+      var target = null;
+      for (var i = 0; i < groups.length; i++) {
+        var rect = groups[i].getBoundingClientRect();
+        if (y >= rect.top && y <= rect.bottom) { target = groups[i]; break; }
+      }
+      var from = dragEl.getAttribute('data-sender');
+      if (target) {
+        var to = target.getAttribute('data-sender');
+        var fromIdx = senderOrder.indexOf(from);
+        var toIdx = senderOrder.indexOf(to);
+        if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
+          senderOrder.splice(fromIdx, 1);
+          senderOrder.splice(toIdx, 0, from);
+          saveOrder();
+        }
+      }
+      dragEl = null;
+      renderAll();
+    }
+    homeList.addEventListener('touchstart', onDown, { passive: false });
+    homeList.addEventListener('touchmove', onMove, { passive: false });
+    homeList.addEventListener('touchend', onUp);
+    homeList.addEventListener('mousedown', onDown);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+  try { bindDrag(); } catch (e) {}
+
+  /* ================= 搜索 ================= */
+  function doSearch(listEl, keyword) {
+    var kw = keyword.trim().toLowerCase();
+    var items = listEl.querySelectorAll('.record-item');
+    var firstMatch = null;
+    items.forEach(function (item) {
+      var text = item.getAttribute('data-search') || '';
+      if (!kw || text.indexOf(kw) !== -1) {
+        item.style.display = '';
+        if (!firstMatch && kw) firstMatch = item;
+      } else {
+        item.style.display = 'none';
+      }
+    });
+    if (firstMatch) {
+      firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstMatch.classList.add('highlight');
+      setTimeout(function () { firstMatch.classList.remove('highlight'); }, 2000);
+    }
+  }
+  $('searchHomeBtn').addEventListener('click', function () { doSearch($('groupListHome'), $('searchHome').value); });
+  $('searchRecordBtn').addEventListener('click', function () { doSearch($('groupListRecords'), $('searchRecord').value); });
+  $('searchHome').addEventListener('input', function () { doSearch($('groupListHome'), this.value); });
+  $('searchRecord').addEventListener('input', function () { doSearch($('groupListRecords'), this.value); });
+
+  /* ================= 底部 Tab ================= */
+  var tabs = document.querySelectorAll('.tab');
+  for (var ti = 0; ti < tabs.length; ti++) {
+    tabs[ti].addEventListener('click', function () {
+      switchPage(this.getAttribute('data-page'));
+    });
+  }
+
+  /* ================= 金额输入 ================= */
+  bindMoneyInput($('fOriginPrice'));
+  bindMoneyInput($('fPrice'));
+  bindMoneyInput($('fCoupon'));
+
+  /* ================= 音乐播放器 ================= */
+  var audioCtx = null;
+  var melodyTimer = null;
+  var melodyStep = 0;
+  var isPlaying = false;
+  var audioEl = null;           // 本地选曲用的 <audio>
+  var usingLocalFile = false;
+  var btnMusic = $('btnMusic');
+  var musicStatus = $('musicStatus');
+  // 简谱音名 → 频率（C 大调，1=中音 do）
+  function noteFreq(n) {
+    var map = { 1: 523.25, 2: 587.33, 3: 659.25, 4: 698.46, 5: 783.99, 6: 880.00, 7: 987.77 };
+    return map[n] || 523.25;
+  }
+  // 主旋律：一首完整的轻快小曲（每格 1/8 拍，0 = 休止，负数 = 低八度）
+  var MELODY = [
+    1,0,2,0,3,0,2,0,  1,0,3,0,5,0,3,0,
+    6,0,5,0,3,0,2,0,  1,0,2,0,3,0,1,0,
+    3,0,5,0,6,0,5,0,  3,0,2,0,1,0,-5,0,
+    6,0,1,0,2,0,3,0,  2,0,1,0,-5,0,-6,0,
+    1,0,0,0,0,0,0,0
+  ];
+  // 和弦琶音（低八度，每 4 格一个和弦根音，柔和铺底）
+  var BASS = [
+    1,0,0,0, 5,0,0,0, 6,0,0,0, 5,0,0,0,
+    1,0,0,0, 5,0,0,0, 6,0,0,0, 5,0,0,0,
+    4,0,0,0, 1,0,0,0, 4,0,0,0, 5,0,0,0,
+    1,0,0,0, 5,0,0,0, 1,0,0,0, 0,0,0,0
+  ];
+  var STEP_MS = 150; // 每格 150ms，约中速
+  function ensureCtx() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+      // 上下文一旦从挂起恢复运行，就立即让旋律真正发声
+      audioCtx.addEventListener('statechange', function () {
+        if (audioCtx.state === 'running' && isPlaying) {
+          if (!melodyTimer) {
+            melodyStep = 0;
+            melodyTimer = setInterval(melodyTick, STEP_MS);
+          }
+        }
+      });
+    }
+    if (audioCtx.state === 'suspended') {
+      var p = audioCtx.resume();
+      if (p && p.then) p.then(function () {}).catch(function () {});
+    }
+    return audioCtx;
+  }
+  function playNote(freq, when, dur, type, vol) {
+    var ctx = audioCtx;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(vol || 0.2, when + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(when); osc.stop(when + dur + 0.05);
+  }
+  function lowFreq(n) { return noteFreq(Math.abs(n)) / 2; }
+  function melodyTick() {
+    if (!isPlaying || usingLocalFile) return;
+    var ctx = ensureCtx();
+    if (!ctx) { stopMelody(); return; }
+    var now = ctx.currentTime;
+    var idx = melodyStep % MELODY.length;
+    // 主旋律（柔和三角波）
+    var m = MELODY[idx];
+    if (m > 0) playNote(noteFreq(m), now, STEP_MS / 1000 * 0.9, 'triangle', 0.18);
+    else if (m < 0) playNote(lowFreq(m), now, STEP_MS / 1000 * 0.9, 'sine', 0.16);
+    // 低音伴奏（正弦波，每格按 BASS 走）
+    var b = BASS[idx];
+    if (b > 0) playNote(lowFreq(b), now, STEP_MS / 1000 * 1.6, 'sine', 0.14);
+    melodyStep++;
+  }
+  function startMelody() {
+    var ctx = ensureCtx();
+    if (!ctx) { stopMelody(); return; }
+    isPlaying = true;
+    btnMusic.textContent = '⏸';
+    musicStatus.textContent = '内置音乐 · 播放中';
+    if (ctx.state === 'running') {
+      melodyStep = 0;
+      if (melodyTimer) clearInterval(melodyTimer);
+      melodyTimer = setInterval(melodyTick, STEP_MS);
+    }
+    // 若上下文仍挂起（自动播放限制），等待 statechange 自动续播
+  }
+  function stopMelody() {
+    if (melodyTimer) { clearInterval(melodyTimer); melodyTimer = null; }
+    isPlaying = false;
+    btnMusic.textContent = '▶';
+    musicStatus.textContent = usingLocalFile ? '本地音乐' : '内置音乐';
+  }
+  btnMusic.addEventListener('click', function () {
+    if (usingLocalFile) {
+      // 本地文件模式：用 <audio> 播放
+      if (!audioEl) return;
+      if (audioEl.paused) {
+        audioEl.play();
+        isPlaying = true;
+        btnMusic.textContent = '⏸';
+        musicStatus.textContent = '本地音乐 · 播放中';
+      } else {
+        audioEl.pause();
+        isPlaying = false;
+        btnMusic.textContent = '▶';
+        musicStatus.textContent = '本地音乐 · 已暂停';
+      }
+      return;
+    }
+    if (isPlaying) { stopMelody(); } else { startMelody(); }
+  });
+  $('musicFile').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!audioEl) {
+      audioEl = new Audio();
+      audioEl.addEventListener('ended', function () {
+        isPlaying = false;
+        btnMusic.textContent = '▶';
+        musicStatus.textContent = '本地音乐 · 播放完毕';
+      });
+    }
+    audioEl.src = URL.createObjectURL(file);
+    usingLocalFile = true;
+    stopMelody();   // 切到本地模式时先停内置旋律
+    audioEl.play().then(function () {
+      isPlaying = true;
+      btnMusic.textContent = '⏸';
+      musicStatus.textContent = '本地音乐 · 播放中';
+    }).catch(function () {
+      musicStatus.textContent = '播放失败';
+    });
+  });
+
+  /* ================= 数据导出 / 导入 ================= */
+  function exportData() {
+    try {
+      var data = {
+        app: '礼包赠送记录',
+        version: 1,
+        exportedAt: formatDateSec(new Date()),
+        records: records,
+        senderOrder: senderOrder,
+        collapsedMap: collapsedMap
+      };
+      var json = JSON.stringify(data, null, 2);
+      var blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = '记账备份_' + formatDate(new Date()).replace(/[:\s]/g, '-') + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      toast('已导出备份文件 ✓');
+    } catch (e) {
+      toast('导出失败');
+    }
+  }
+  function importData(file) {
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(reader.result);
+        var recs = data.records || data;
+        if (!Array.isArray(recs)) { toast('文件格式不正确'); return; }
+        records = recs;
+        senderOrder = Array.isArray(data.senderOrder) ? data.senderOrder : [];
+        collapsedMap = (data.collapsedMap && typeof data.collapsedMap === 'object') ? data.collapsedMap : {};
+        saveRecords();
+        saveOrder();
+        saveCollapsed();
+        renderAll();
+        toast('导入成功，共 ' + records.length + ' 条记录 ✓');
+      } catch (e) {
+        toast('导入失败：文件内容无法解析');
+      }
+    };
+    reader.onerror = function () { toast('读取文件失败'); };
+    reader.readAsText(file, 'utf-8');
+  }
+  try {
+    $('btnExport').addEventListener('click', exportData);
+  } catch (e) {}
+  try {
+    $('btnImport').addEventListener('click', function () { $('importFile').click(); });
+  } catch (e) {}
+  try {
+    $('importFile').addEventListener('change', function (e) {
+      var file = e.target.files && e.target.files[0];
+      importData(file);
+      e.target.value = '';
+    });
+  } catch (e) {}
+
+  /* ================= 启动 ================= */
+  // 核心功能：动态时间 + 记录渲染，最先、最优先、独立执行
+  try { initTime(); } catch (e) {}
+  try { renderAll(); } catch (e) {}
+  // 打开页面自动播放：先直接尝试；被浏览器自动播放策略拦截时，等首次用户交互自动续播
+  function autoPlay() {
+    try { startMelody(); } catch (e) {}
+  }
+  try { autoPlay(); } catch (e) {}
+  function resumeOnGesture() {
+    // 只要还没真正出声（定时器没跑），就在手势后重新 resume + 启动
+    if (!melodyTimer) {
+      try {
+        var ctx = ensureCtx();
+        if (ctx && ctx.state !== 'running') {
+          var p = ctx.resume();
+          if (p && p.then) p.then(function () { startMelody(); }).catch(function () {});
+        } else {
+          startMelody();
+        }
+      } catch (e) {}
+    }
+  }
+  document.addEventListener('touchstart', function oncePlay() {
+    resumeOnGesture();
+    document.removeEventListener('touchstart', oncePlay);
+  });
+  document.addEventListener('click', function oncePlayClick() {
+    resumeOnGesture();
+    document.removeEventListener('click', oncePlayClick);
+  });
+})();
+</script>
+</body>
+</html>
